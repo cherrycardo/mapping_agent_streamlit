@@ -2,7 +2,7 @@ import streamlit as st
 import tempfile
 import os
 
-from core.docx_mapping_table import extract_raw_bronze_pairs
+from core.docx_mapping_table import extract_raw_bronze_pairs_from_mapping_table
 from core.excel_writer import append_raw_bronze_to_template
 
 st.set_page_config(page_title="Raw to Bronze Mapping Agent", layout="wide")
@@ -25,7 +25,7 @@ if uploaded:
 
     if st.button("Generate Excel mapping"):
         try:
-            pairs = extract_raw_bronze_pairs(
+            pairs = extract_raw_bronze_pairs_from_mapping_table(
                 docx_path=docx_path,
                 raw_header=raw_table_name,
                 bronze_header=bronze_table_name,
@@ -55,3 +55,4 @@ if uploaded:
 
         except Exception as e:
             st.error(str(e))
+
