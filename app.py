@@ -27,8 +27,8 @@ if uploaded:
         try:
             pairs = extract_raw_bronze_pairs_from_mapping_table(
                 docx_path=docx_path,
-                raw_header=raw_table_name,
-                bronze_header=bronze_table_name,
+                raw_table_name=raw_table_name,
+                bronze_table_name=bronze_table_name,
             )
 
             st.write(f"Extracted {len(pairs)} raw to bronze column pairs.")
@@ -55,4 +55,5 @@ if uploaded:
 
         except Exception as e:
             st.error(str(e))
+
 
