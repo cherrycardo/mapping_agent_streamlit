@@ -34,12 +34,12 @@ def append_raw_bronze_to_template(
         if h:
             header_to_col[h] = c
 
-    def col(header_text: str) -> int:
-        key = _norm(header_text)
-        if key not in header_to_col:
-            raise ValueError(
-                f"Missing header '{header_text}' in template header row {header_row}. "
-                f"Found headers: {list(header_to_col.keys())[:20]}..."
+   def col_any(*header_options: str) -> int:
+    for h in header_options:
+        key = _norm(h)
+        if key in header_to_col:
+            return header_to_col[key]
+    raise ValueError(f"None of these headers exist in template: {header_options}")
             )
         return header_to_col[key]
 
@@ -54,8 +54,9 @@ def append_raw_bronze_to_template(
         ws.cell(r, col("Raw column name")).value = p.get("raw_column", "")
 
         # BRONZE section (in your template these are labeled as Table Name / Column Name)
-        ws.cell(r, col("Table Name")).value = bronze_table_name
-        ws.cell(r, col("Column Name")).value = p.get("bronze_column", "")
+        ws.cell(r, col_any("Bronze Table Name", "Table Name")).value = bronze_table_name
+        ws.cell(r, col_any("Bronze Column Name", "Column Name")).value = p.get("bronze_column", "")
+
 
         # Optional: if you want to fill Bronze datatype + description in MVP:
         # Bronze datatype header in your template is also "Data Type w/ Precision"
@@ -69,3 +70,4 @@ def append_raw_bronze_to_template(
         r += 1
 
     wb.save(output_path)
+
