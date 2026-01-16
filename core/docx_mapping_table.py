@@ -49,33 +49,32 @@ def extract_raw_bronze_pairs_from_mapping_table(
     # 2) Find the header row that contains the column labels we need
     #    We need a row that has 'column name' on the raw side and 'actual column name' on the bronze side
     header_row_idx = None
-raw_col_idx = None
-bronze_col_idx = None
-bronze_dtype_idx = None
-bronze_desc_idx = None
+    raw_col_idx = None
+    bronze_col_idx = None
+    bronze_dtype_idx = None
+    bronze_desc_idx = None
 
-for i, row in enumerate(target_mat[:10]):  # scan first 10 rows for headers
-    row_n = [_norm(c) for c in row]
+    for i, row in enumerate(target_mat[:10]):  # scan first 10 rows for headers
+        row_n = [_norm(c) for c in row]
 
-    if "column name" in row_n and "actual column name" in row_n:
-        header_row_idx = i
-        raw_col_idx = row_n.index("column name")
-        bronze_col_idx = row_n.index("actual column name")
+        if "column name" in row_n and "actual column name" in row_n:
+            header_row_idx = i
+            raw_col_idx = row_n.index("column name")
+            bronze_col_idx = row_n.index("actual column name")
 
-        # Find BRONZE datatype: the "data type" that appears after "actual column name"
-        dtype_positions = [idx for idx, val in enumerate(row_n) if val == "data type"]
-        if dtype_positions:
+            # Find BRONZE datatype: the "data type" that appears after "actual column name"
+            dtype_positions = [idx for idx, val in enumerate(row_n) if val == "data type"]
+            if dtype_positions:
             for pos in dtype_positions:
                 if pos > bronze_col_idx:
                     bronze_dtype_idx = pos
                     break
 
         # Bronze description is usually a unique column on the far right
-        if "description" in row_n:
-            bronze_desc_idx = row_n.index("description")
-
-        break
-
+            if "description" in row_n:
+                bronze_desc_idx = row_n.index("description")
+                
+                break
 
     if header_row_idx is None:
         raise ValueError(
