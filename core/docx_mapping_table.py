@@ -65,16 +65,16 @@ def extract_raw_bronze_pairs_from_mapping_table(
             # Find BRONZE datatype: the "data type" that appears after "actual column name"
             dtype_positions = [idx for idx, val in enumerate(row_n) if val == "data type"]
             if dtype_positions:
-            for pos in dtype_positions:
-                if pos > bronze_col_idx:
-                    bronze_dtype_idx = pos
-                    break
+                for pos in dtype_positions:
+                    if pos > bronze_col_idx:
+                        bronze_dtype_idx = pos
+                        break
 
         # Bronze description is usually a unique column on the far right
             if "description" in row_n:
                 bronze_desc_idx = row_n.index("description")
                 
-                break
+            break
 
     if header_row_idx is None:
         raise ValueError(
