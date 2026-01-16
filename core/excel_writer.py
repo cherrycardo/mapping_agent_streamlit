@@ -3,12 +3,12 @@ from openpyxl import load_workbook
 def _norm(s) -> str:
     return " ".join(str(s or "").strip().lower().split())
 
-def _find_header_row(ws, must_contain: list[str], max_rows: int = 30):
-    must = [_norm(x) for x in must_contain]
-    for r in range(1, max_rows + 1):
-        row_vals = [_norm(ws.cell(r, c).value) for c in range(1, ws.max_column + 1)]
-        if all(m in row_vals for m in must):
-            return r, row_vals
+def _find_cell(ws, needle: str, max_rows: int = 50):
+    needle_n = _norm(needle)
+    for r in range(1, min(max_rows, ws.max_row) + 1):
+        for c in range(1, ws.max_column + 1):
+            if _norm(ws.cell(r, c).value) == needle_n:
+                return r, c
     return None, None
 
 def append_raw_bronze_to_template(
@@ -22,43 +22,49 @@ def append_raw_bronze_to_template(
     wb = load_workbook(template_path)
     ws = wb[sheet_name]
 
-    # These are the exact headers that exist in your template in row 2.
-    header_row, header_vals = _find_header_row(
-        ws,
-        must_contain=["Raw table name", "Raw column name", "Table Name", "Column Name"],
-    )
+    # Find header row by locating the "Raw table name" cell
+    header_row, _ = _find_cell(ws, "Raw table name", max_rows=50)
     if not header_row:
-        raise ValueError(f"Could not find expected headers in sheet: {sheet_name}")
+        raise ValueError(f"Could not find 'Raw table name' header in sheet: {sheet_name}")
 
-    # Build a map: header text -> column index
+    # Build a header -> column index map from that row
     header_to_col = {}
-    for c, h in enumerate(header_vals, start=1):
+    for c in range(1, ws.max_column + 1):
+        h = _norm(ws.cell(header_row, c).value)
         if h:
             header_to_col[h] = c
 
     def col(header_text: str) -> int:
         key = _norm(header_text)
         if key not in header_to_col:
-            raise ValueError(f"Missing header in template: {header_text}")
+            raise ValueError(
+                f"Missing header '{header_text}' in template header row {header_row}. "
+                f"Found headers: {list(header_to_col.keys())[:20]}..."
+            )
         return header_to_col[key]
 
-    # Find first empty row after header
+    # Find first empty row using Raw column name as the anchor
     r = header_row + 1
-    while True:
-        # Use Raw column name as the anchor for "is this row empty"
-        if ws.cell(r, col("Raw column name")).value in (None, ""):
-            break
+    while ws.cell(r, col("Raw column name")).value not in (None, ""):
         r += 1
 
     for p in pairs:
+        # RAW section
         ws.cell(r, col("Raw table name")).value = raw_table_name
         ws.cell(r, col("Raw column name")).value = p.get("raw_column", "")
 
-        # In this template, Bronze uses:
-        # Table Name = Bronze table name
-        # Column Name = Bronze column name
+        # BRONZE section (in your template these are labeled as Table Name / Column Name)
         ws.cell(r, col("Table Name")).value = bronze_table_name
         ws.cell(r, col("Column Name")).value = p.get("bronze_column", "")
+
+        # Optional: if you want to fill Bronze datatype + description in MVP:
+        # Bronze datatype header in your template is also "Data Type w/ Precision"
+        # Bronze description header is "Column Definition"
+        if "bronze_datatype" in p and _norm("Data Type w/ Precision") in header_to_col:
+            ws.cell(r, col("Data Type w/ Precision")).value = p.get("bronze_datatype", "")
+
+        if "bronze_description" in p and _norm("Column Definition") in header_to_col:
+            ws.cell(r, col("Column Definition")).value = p.get("bronze_description", "")
 
         r += 1
 
