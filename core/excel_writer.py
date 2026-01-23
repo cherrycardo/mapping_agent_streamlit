@@ -41,7 +41,7 @@ def append_raw_bronze_to_template(
                 return header_to_col[key]
         raise ValueError(f"None of these headers exist in template: {header_options}")
 
-#Requires adjustments to seek empty rows, but to be able to overwrite it: 
+#3. Requires adjustments to seek empty rows, but to be able to overwrite it: 
     r = header_row + 1
     while ws.cell(r, col_any("Raw column name")).value not in (None, ""):
         r += 1
@@ -63,4 +63,5 @@ def append_raw_bronze_to_template(
         r += 1
 
     wb.save(output_path)
+
 
