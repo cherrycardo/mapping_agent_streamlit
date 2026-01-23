@@ -2,37 +2,35 @@ from docx import Document
 
 def _norm(s: str) -> str:
     return " ".join((s or "").strip().lower().split())
-
+    
+#1. DocX tables to plain text:
 def _table_to_matrix(table):
-    # Convert docx table to plain text matrix
     mat = []
     for row in table.rows:
         mat.append([cell.text.strip() for cell in row.cells])
     return mat
 
+#2. Table finder. Looks for raw left to right and for Bronze from right to left. 
+    #Missing datatype and decription columns finders for the Raw layer. 
 def extract_raw_bronze_pairs_from_mapping_table(
     docx_path: str,
     raw_table_name: str,
     bronze_table_name: str,
     title_text: str = "raw->bronze data mapping",
 ) -> list[dict]:
-    """
-    Extracts mappings from the DOCX table titled 'Raw->Bronze Data Mapping'.
-    Pulls:
-      - raw_column from the left-side 'Column Name'
-      - bronze_column from the right-side 'Actual Column Name'
-    Also optionally returns bronze datatype + description when present.
-    """
+   
 
     doc = Document(docx_path)
     raw_table_name_n = _norm(raw_table_name)
     bronze_table_name_n = _norm(bronze_table_name)
     title_n = _norm(title_text)
 
+
+#3. Table finder looking for the specific table names.
+    #Ideally this will be replaced by an ML tool that automatically identifies the mapping tables. 
     target_mat = None
 
-    # 1) Find the correct table using a robust heuristic:
-    #    table contains the title OR contains both table names somewhere in the first few rows.
+    
     for t in doc.tables:
         mat = _table_to_matrix(t)
         if not mat:
@@ -46,8 +44,6 @@ def extract_raw_bronze_pairs_from_mapping_table(
     if target_mat is None:
         raise ValueError("Could not find the 'Raw->Bronze Data Mapping' table in the DOCX.")
 
-    # 2) Find the header row that contains the column labels we need
-    #    We need a row that has 'column name' on the raw side and 'actual column name' on the bronze side
     header_row_idx = None
     raw_col_idx = None
     bronze_col_idx = None
@@ -62,7 +58,7 @@ def extract_raw_bronze_pairs_from_mapping_table(
             raw_col_idx = row_n.index("column name")
             bronze_col_idx = row_n.index("actual column name")
 
-            # Find BRONZE datatype: the "data type" that appears after "actual column name"
+#5. Bronze data finder:
             dtype_positions = [idx for idx, val in enumerate(row_n) if val == "data type"]
             if dtype_positions:
                 for pos in dtype_positions:
@@ -70,7 +66,7 @@ def extract_raw_bronze_pairs_from_mapping_table(
                         bronze_dtype_idx = pos
                         break
 
-        # Bronze description is usually a unique column on the far right
+     
             if "description" in row_n:
                 bronze_desc_idx = row_n.index("description")
                 
@@ -82,17 +78,15 @@ def extract_raw_bronze_pairs_from_mapping_table(
             "'Column Name' and 'Actual Column Name'."
         )
 
-    # 3) Extract data rows after the header
     pairs = []
     for row in target_mat[header_row_idx + 1:]:
-        # guard against short rows
+
         if raw_col_idx >= len(row) or bronze_col_idx >= len(row):
             continue
 
         raw_col = (row[raw_col_idx] or "").strip()
         bronze_col = (row[bronze_col_idx] or "").strip()
 
-        # skip blank rows
         if not raw_col and not bronze_col:
             continue
 
