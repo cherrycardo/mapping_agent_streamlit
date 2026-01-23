@@ -8,10 +8,11 @@ from core.excel_writer import append_raw_bronze_to_template
 st.set_page_config(page_title="Raw to Bronze Mapping Agent", layout="wide")
 st.title("Raw to Bronze Mapping Agent")
 
+#Potential improvements for the following hard-coded sections:
 template_path = "templates/Master Mapping Template (2).xlsx"
 sheet_name = "Source to Raw to Bronze"
 
-raw_table_name = "raw_cpm_customer_profile_event_compliance"
+raw_table_name = "raw_cpm_customer_profile_event_compliance"            
 bronze_table_name = "stg_cpm_customer_profile_event_compliance"
 
 uploaded = st.file_uploader("Upload requirements Word doc (DOCX)", type=["docx"])
@@ -55,5 +56,6 @@ if uploaded:
 
         except Exception as e:
             st.error(str(e))
+
 
 
