@@ -3,6 +3,7 @@ from openpyxl import load_workbook
 def _norm(s) -> str:
     return " ".join(str(s or "").strip().lower().split())
 
+#1. Cell finder is coded to look-for empty rows only. I had to adjust the template to have blank cells. 
 def _find_cell(ws, needle: str, max_rows: int = 50):
     needle_n = _norm(needle)
     for r in range(1, min(max_rows, ws.max_row) + 1):
@@ -22,12 +23,11 @@ def append_raw_bronze_to_template(
     wb = load_workbook(template_path)
     ws = wb[sheet_name]
 
-    # Locate header row using a stable anchor
+#2. Raw Column locator:
     header_row, _ = _find_cell(ws, "Raw table name", max_rows=50)
     if not header_row:
         raise ValueError(f"Could not find 'Raw table name' header in sheet: {sheet_name}")
 
-    # Build header → column index map
     header_to_col = {}
     for c in range(1, ws.max_column + 1):
         h = _norm(ws.cell(header_row, c).value)
@@ -41,21 +41,19 @@ def append_raw_bronze_to_template(
                 return header_to_col[key]
         raise ValueError(f"None of these headers exist in template: {header_options}")
 
-    # Find first empty row
+#Requires adjustments to seek empty rows, but to be able to overwrite it: 
     r = header_row + 1
     while ws.cell(r, col_any("Raw column name")).value not in (None, ""):
         r += 1
 
     for p in pairs:
-        # RAW
+  
         ws.cell(r, col_any("Raw table name")).value = raw_table_name
         ws.cell(r, col_any("Raw column name")).value = p.get("raw_column", "")
 
-        # BRONZE
         ws.cell(r, col_any("Bronze table name", "Table Name")).value = bronze_table_name
         ws.cell(r, col_any("Bronze column name", "Column Name")).value = p.get("bronze_column", "")
 
-        # Optional Bronze metadata
         if "bronze_datatype" in p:
             ws.cell(r, col_any("Data Type w/ Precision")).value = p.get("bronze_datatype")
 
@@ -65,3 +63,4 @@ def append_raw_bronze_to_template(
         r += 1
 
     wb.save(output_path)
+
